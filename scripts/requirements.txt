@@ -1,0 +1,2 @@
+transitfeed==1.2.14
+unicodecsv==0.14.1

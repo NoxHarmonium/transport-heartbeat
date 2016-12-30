@@ -1,7 +1,9 @@
 (function (L) {
 'use strict';
 
-var layer = new L.StamenTileLayer("toner-background");
+var layer = new L.StamenTileLayer("toner-background", {
+  opacity: 0.5
+});
 var map = new L.Map("mapid", {
   center: new L.LatLng(-37.8136, 144.9631),
   zoom: 12
@@ -17,7 +19,7 @@ Promise.all([fetch('geojson/bus-lines-simplified.json').then(function (res) {
 })]).then(function (results) {
   L.geoJSON(results[0], {
     style: {
-      "color": "#FF6F00",
+      "color": "#FFB74D",
       "weight": 2,
       "opacity": 0.25
     }

@@ -62,21 +62,22 @@ def process_stop_times(database, stop_times_filename):
 
 def process_calendar(database, calendar_filename):
     cur = database.cursor()
-    cur.execute("CREATE TABLE calendar (id, day_mask, " +
+    cur.execute("CREATE TABLE calendar (id, day_mask, start_date, end_date, " +
                 "PRIMARY KEY (id));")
     with codecs.open(calendar_filename, encoding='utf-8-sig') as calendar_file:
         dict_reader = csv.DictReader(calendar_file)
-        to_db = [(i['service_id'], int(i['monday'] + i['tuesday'] + i['wednesday'] + i['thursday'] + i['friday'] + i['saturday'] + i['sunday'], 2)) for i in dict_reader]
+        to_db = [(i['service_id'], int(i['monday'] + i['tuesday'] + i['wednesday'] + i['thursday'] + i['friday'] + i['saturday'] + i['sunday'], 2), i['start_date'], i['end_date']) for i in dict_reader]
 
-    cur.executemany("INSERT INTO calendar (id, day_mask) VALUES (?, ?);", to_db)
+    cur.executemany("INSERT INTO calendar (id, day_mask, start_date, end_date) VALUES (?, ?, ?, ?);", to_db)
     database.commit()
 
 def test_query(database):
     cur = database.cursor()
-    cur.execute("SELECT s.name, s.lat, s.lon, st.departure_time, c.day_mask FROM stop_times st " +
+    cur.execute("SELECT s.name, s.lat, s.lon, st.departure_time, c.day_mask, st.service_id FROM stop_times st " +
                 "INNER JOIN stops s ON s.id = st.stop_id " +
                 "INNER JOIN calendar c ON c.id = st.service_id " +
                 "WHERE (c.day_mask & 1) == 1 " +
+                "AND   (c.start_date <= '2017-01-09' AND c.end_date >= '2017-01-09') " +
                 "ORDER BY st.departure_time " +
                 "LIMIT 100")
     for record in cur.fetchall():

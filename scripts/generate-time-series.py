@@ -29,7 +29,10 @@ def validate_paths(folder_path):
     stops_filename = os.path.join(folder_path, 'stops.txt')
     if not os.path.exists(stops_filename):
         sys.exit("Missing file: 'stops.txt'")
-    return stops_filename, stop_times_filename
+    calendar_filename = os.path.join(folder_path, 'calendar.txt')
+    if not os.path.exists(calendar_filename):
+        sys.exit("Missing file: 'calendar.txt'")
+    return stops_filename, stop_times_filename, calendar_filename
 
 def create_temp_db():
     return sqlite3.connect(":memory:")
@@ -46,26 +49,40 @@ def process_stops(database, stops_filename):
 
 def process_stop_times(database, stop_times_filename):
     cur = database.cursor()
-    cur.execute("CREATE TABLE stop_times (id, sequence, stop_id, departure_time, " +
+    cur.execute("CREATE TABLE stop_times (id, sequence, stop_id, departure_time, service_id, " +
                 "FOREIGN KEY(stop_id) REFERENCES stops(id) " +
+                "FOREIGN KEY(service_id) REFERENCES calendar(id) " +
                 "PRIMARY KEY (id, sequence));")
     with codecs.open(stop_times_filename, encoding='utf-8-sig') as stop_times_file:
         dict_reader = csv.DictReader(stop_times_file)
-        to_db = [(i['trip_id'], i['stop_sequence'], i['stop_id'], i['departure_time']) for i in dict_reader]
+        to_db = [(i['trip_id'], i['stop_sequence'], i['stop_id'], i['departure_time'], i['trip_id'].split('.')[1]) for i in dict_reader]
 
-    cur.executemany("INSERT INTO stop_times (id, sequence, stop_id, departure_time) VALUES (?, ?, ?, ?);", to_db)
+    cur.executemany("INSERT INTO stop_times (id, sequence, stop_id, departure_time, service_id) VALUES (?, ?, ?, ?, ?);", to_db)
+    database.commit()
+
+def process_calendar(database, calendar_filename):
+    cur = database.cursor()
+    cur.execute("CREATE TABLE calendar (id, day_mask, " +
+                "PRIMARY KEY (id));")
+    with codecs.open(calendar_filename, encoding='utf-8-sig') as calendar_file:
+        dict_reader = csv.DictReader(calendar_file)
+        to_db = [(i['service_id'], int(i['monday'] + i['tuesday'] + i['wednesday'] + i['thursday'] + i['friday'] + i['saturday'] + i['sunday'], 2)) for i in dict_reader]
+
+    cur.executemany("INSERT INTO calendar (id, day_mask) VALUES (?, ?);", to_db)
     database.commit()
 
 def test_query(database):
     cur = database.cursor()
-    cur.execute("SELECT s.name, s.lat, s.lon, st.departure_time FROM stop_times st " +
+    cur.execute("SELECT s.name, s.lat, s.lon, st.departure_time, day_mask FROM stop_times st " +
                 "INNER JOIN stops s ON s.id = st.stop_id " +
+                "INNER JOIN calendar c ON c.id = st.service_id " +
                 "LIMIT 100")
     print cur.fetchall()
 
 def process_folder(folder_path):
-    stops_filename, stop_times_filename = validate_paths(folder_path)
+    stops_filename, stop_times_filename, calendar_filename = validate_paths(folder_path)
     database = create_temp_db()
+    process_calendar(database, calendar_filename)
     process_stops(database, stops_filename)
     process_stop_times(database, stop_times_filename)
     test_query(database)

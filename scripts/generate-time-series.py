@@ -73,11 +73,14 @@ def process_calendar(database, calendar_filename):
 
 def test_query(database):
     cur = database.cursor()
-    cur.execute("SELECT s.name, s.lat, s.lon, st.departure_time, day_mask FROM stop_times st " +
+    cur.execute("SELECT s.name, s.lat, s.lon, st.departure_time, c.day_mask FROM stop_times st " +
                 "INNER JOIN stops s ON s.id = st.stop_id " +
                 "INNER JOIN calendar c ON c.id = st.service_id " +
+                "WHERE (c.day_mask & 1) == 1 " +
+                "ORDER BY st.departure_time " +
                 "LIMIT 100")
-    print cur.fetchall()
+    for record in cur.fetchall():
+        print record
 
 def process_folder(folder_path):
     stops_filename, stop_times_filename, calendar_filename = validate_paths(folder_path)

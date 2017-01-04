@@ -12,6 +12,7 @@ __version__ = "0.0.1"
 __license__ = "MIT"
 
 import codecs
+import json
 import logging
 import os
 import sqlite3
@@ -90,7 +91,7 @@ def process_calendar(database, calendar_filename):
                     "VALUES (?, ?, ?, ?);", to_db)
     database.commit()
 
-def test_query(database):
+def write_data(database, output_filename):
     cur = database.cursor()
     cur.execute("SELECT s.name, s.lat, s.lon, st.departure_time, c.day_mask, st.service_id " +
                 "FROM stop_times st " +
@@ -99,23 +100,32 @@ def test_query(database):
                 "WHERE (c.day_mask & 1) == 1 " +
                 "AND   (c.start_date <= '2017-01-09' AND c.end_date >= '2017-01-09') " +
                 "ORDER BY st.departure_time ")
-    for record in cur.fetchall():
-        print record
 
-def process_folder(folder_path):
+    columns = [d[0] for d in cur.description]
+    dict_with_rows = [dict(zip(columns, row)) for row in cur.fetchall()]
+    with open(output_filename, 'w') as output_file:
+        json.dump(dict_with_rows, output_file)
+
+def process_folder(folder_path, output_filename):
     stops_filename, stop_times_filename, calendar_filename = validate_paths(folder_path)
     database = create_temp_db()
     process_calendar(database, calendar_filename)
     process_stops(database, stops_filename)
     process_stop_times(database, stop_times_filename)
-    test_query(database)
+    write_data(database, output_filename)
     database.close()
 
 def main():
+    # Example usage: ./generate_time_series.py -d data/trains/ -o test.json
     from optparse import OptionParser
     parser = OptionParser(version="%%prog v%s" % __version__,
                           usage="%prog [options] <argument> ...",
                           description=__doc__.replace('\r\n', '\n').split('\n--snip--\n')[0])
+
+    parser.add_option("-d", "--data_folder", dest="data_folder",
+                      help="Directory to read the PT data from")
+    parser.add_option("-o", "--output_filename", dest="output_filename",
+                      help="File to write the output to (e.g. data.json)")
     parser.add_option('-v', '--verbose', action="count", dest="verbose",
                       default=2, help="Increase the verbosity. Use twice for extra effect")
     parser.add_option('-q', '--quiet', action="count", dest="quiet",
@@ -125,9 +135,11 @@ def main():
     # Allow pre-formatted descriptions
     parser.formatter.format_description = lambda description: description
 
-    opts, args = parser.parse_args()
+    opts, _ = parser.parse_args()
 
-    print args
+    for required in ['data_folder', 'output_filename']:
+        if opts.__dict__[required] is None:
+            parser.error("parameter %s required" % required)
 
     # Set up clean logging to stderr
     log_levels = [logging.CRITICAL, logging.ERROR, logging.WARNING,
@@ -137,7 +149,7 @@ def main():
     logging.basicConfig(level=log_levels[opts.verbose],
                         format='%(levelname)s: %(message)s')
 
-    process_folder('./data/trains/')
+    process_folder(opts.data_folder, opts.output_filename)
 
 if __name__ == '__main__':
     main()

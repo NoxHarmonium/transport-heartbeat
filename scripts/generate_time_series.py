@@ -41,7 +41,7 @@ def process_stops(database, stops_filename):
     cur = database.cursor()
     cur.execute("CREATE TABLE stops (id PRIMARY KEY, name, lat, lon);")
     with codecs.open(stops_filename, encoding='utf-8-sig') as stop_file:
-        dict_reader = csv.DictReader(stop_file)
+        dict_reader = csv.UnicodeCSVDictReader(stop_file)
         to_db = [(i['stop_id'], i['stop_name'], i['stop_lat'], i['stop_lon']) for i in dict_reader]
 
     cur.executemany("INSERT INTO stops (id, name, lat, lon) VALUES (?, ?, ?, ?);", to_db)
@@ -54,32 +54,51 @@ def process_stop_times(database, stop_times_filename):
                 "FOREIGN KEY(service_id) REFERENCES calendar(id) " +
                 "PRIMARY KEY (id, sequence));")
     with codecs.open(stop_times_filename, encoding='utf-8-sig') as stop_times_file:
-        dict_reader = csv.DictReader(stop_times_file)
-        to_db = [(i['trip_id'], i['stop_sequence'], i['stop_id'], i['departure_time'], i['trip_id'].split('.')[1]) for i in dict_reader]
+        dict_reader = csv.UnicodeCSVDictReader(stop_times_file)
+        to_db = [(i['trip_id'],
+                  i['stop_sequence'],
+                  i['stop_id'],
+                  i['departure_time'],
+                  i['trip_id'].split('.')[1]) for i in dict_reader]
 
-    cur.executemany("INSERT INTO stop_times (id, sequence, stop_id, departure_time, service_id) VALUES (?, ?, ?, ?, ?);", to_db)
+    cur.executemany("INSERT INTO stop_times " +
+                    "(id, sequence, stop_id, departure_time, service_id) " +
+                    "VALUES (?, ?, ?, ?, ?);", to_db)
     database.commit()
+
+def generate_day_mask(csv_dict):
+    return int(csv_dict['monday'] +
+               csv_dict['tuesday'] +
+               csv_dict['wednesday'] +
+               csv_dict['thursday'] +
+               csv_dict['friday'] +
+               csv_dict['saturday'] +
+               csv_dict['sunday'], 2)
 
 def process_calendar(database, calendar_filename):
     cur = database.cursor()
     cur.execute("CREATE TABLE calendar (id, day_mask, start_date, end_date, " +
                 "PRIMARY KEY (id));")
     with codecs.open(calendar_filename, encoding='utf-8-sig') as calendar_file:
-        dict_reader = csv.DictReader(calendar_file)
-        to_db = [(i['service_id'], int(i['monday'] + i['tuesday'] + i['wednesday'] + i['thursday'] + i['friday'] + i['saturday'] + i['sunday'], 2), i['start_date'], i['end_date']) for i in dict_reader]
+        dict_reader = csv.UnicodeCSVDictReader(calendar_file)
+        to_db = [(i['service_id'],
+                  generate_day_mask(i),
+                  i['start_date'],
+                  i['end_date']) for i in dict_reader]
 
-    cur.executemany("INSERT INTO calendar (id, day_mask, start_date, end_date) VALUES (?, ?, ?, ?);", to_db)
+    cur.executemany("INSERT INTO calendar (id, day_mask, start_date, end_date)" +
+                    "VALUES (?, ?, ?, ?);", to_db)
     database.commit()
 
 def test_query(database):
     cur = database.cursor()
-    cur.execute("SELECT s.name, s.lat, s.lon, st.departure_time, c.day_mask, st.service_id FROM stop_times st " +
+    cur.execute("SELECT s.name, s.lat, s.lon, st.departure_time, c.day_mask, st.service_id " +
+                "FROM stop_times st " +
                 "INNER JOIN stops s ON s.id = st.stop_id " +
                 "INNER JOIN calendar c ON c.id = st.service_id " +
                 "WHERE (c.day_mask & 1) == 1 " +
                 "AND   (c.start_date <= '2017-01-09' AND c.end_date >= '2017-01-09') " +
-                "ORDER BY st.departure_time " +
-                "LIMIT 100")
+                "ORDER BY st.departure_time ")
     for record in cur.fetchall():
         print record
 
@@ -106,7 +125,9 @@ def main():
     # Allow pre-formatted descriptions
     parser.formatter.format_description = lambda description: description
 
-    opts, args  = parser.parse_args()
+    opts, args = parser.parse_args()
+
+    print args
 
     # Set up clean logging to stderr
     log_levels = [logging.CRITICAL, logging.ERROR, logging.WARNING,

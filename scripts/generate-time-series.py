@@ -16,7 +16,6 @@ import logging
 import os
 import sqlite3
 import sys
-import unicodecsv as csv
 
 LOG = logging.getLogger(__name__)
 

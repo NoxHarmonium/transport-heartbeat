@@ -19,6 +19,8 @@ import sqlite3
 import sys
 import unicodecsv as csv
 
+from dateutil.parser import parse as parse_date
+
 LOG = logging.getLogger(__name__)
 
 def validate_paths(folder_path):
@@ -68,13 +70,18 @@ def process_stop_times(database, stop_times_filename):
     database.commit()
 
 def generate_day_mask(csv_dict):
-    return int(csv_dict['monday'] +
-               csv_dict['tuesday'] +
-               csv_dict['wednesday'] +
-               csv_dict['thursday'] +
-               csv_dict['friday'] +
+    return int(csv_dict['sunday'] +
                csv_dict['saturday'] +
-               csv_dict['sunday'], 2)
+               csv_dict['friday'] +
+               csv_dict['thursday'] +
+               csv_dict['wednesday'] +
+               csv_dict['tuesday'] +
+               csv_dict['monday'], 2)
+
+def day_of_week_to_mask(day_of_week):
+    if day_of_week < 0 or day_of_week > 6:
+        sys.exit("Invalid day of week: " + str(day_of_week))
+    return 1 << day_of_week
 
 def process_calendar(database, calendar_filename):
     cur = database.cursor()
@@ -91,28 +98,31 @@ def process_calendar(database, calendar_filename):
                     "VALUES (?, ?, ?, ?);", to_db)
     database.commit()
 
-def write_data(database, output_filename):
+def write_data(database, output_filename, date):
     cur = database.cursor()
-    cur.execute("SELECT s.name, s.lat, s.lon, st.departure_time, c.day_mask, st.service_id " +
+    day_of_week = day_of_week_to_mask(date.weekday())
+    formatted_date = date.strftime('%Y-%m-%d')
+    cur.execute("SELECT s.name, s.lat, s.lon, st.departure_time, c.day_mask " +
                 "FROM stop_times st " +
                 "INNER JOIN stops s ON s.id = st.stop_id " +
                 "INNER JOIN calendar c ON c.id = st.service_id " +
-                "WHERE (c.day_mask & 1) == 1 " +
-                "AND   (c.start_date <= '2017-01-09' AND c.end_date >= '2017-01-09') " +
-                "ORDER BY st.departure_time ")
+                "WHERE (c.day_mask & ?) == ? " +
+                "AND   (c.start_date <= ? AND c.end_date >= ?) " +
+                "ORDER BY st.departure_time ",
+                (day_of_week, day_of_week, formatted_date, formatted_date))
 
     columns = [d[0] for d in cur.description]
     dict_with_rows = [dict(zip(columns, row)) for row in cur.fetchall()]
     with open(output_filename, 'w') as output_file:
         json.dump(dict_with_rows, output_file)
 
-def process_folder(folder_path, output_filename):
+def process_folder(folder_path, output_filename, date):
     stops_filename, stop_times_filename, calendar_filename = validate_paths(folder_path)
     database = create_temp_db()
     process_calendar(database, calendar_filename)
     process_stops(database, stops_filename)
     process_stop_times(database, stop_times_filename)
-    write_data(database, output_filename)
+    write_data(database, output_filename, date)
     database.close()
 
 def main():
@@ -126,6 +136,8 @@ def main():
                       help="Directory to read the PT data from")
     parser.add_option("-o", "--output_filename", dest="output_filename",
                       help="File to write the output to (e.g. data.json)")
+    parser.add_option("-D", "--date", dest="raw_date",
+                      help="Date to dump PT data for")
     parser.add_option('-v', '--verbose', action="count", dest="verbose",
                       default=2, help="Increase the verbosity. Use twice for extra effect")
     parser.add_option('-q', '--quiet', action="count", dest="quiet",
@@ -137,7 +149,7 @@ def main():
 
     opts, _ = parser.parse_args()
 
-    for required in ['data_folder', 'output_filename']:
+    for required in ['data_folder', 'output_filename', 'raw_date']:
         if opts.__dict__[required] is None:
             parser.error("parameter %s required" % required)
 
@@ -149,7 +161,8 @@ def main():
     logging.basicConfig(level=log_levels[opts.verbose],
                         format='%(levelname)s: %(message)s')
 
-    process_folder(opts.data_folder, opts.output_filename)
+    date = parse_date(opts.raw_date)
+    process_folder(opts.data_folder, opts.output_filename, date)
 
 if __name__ == '__main__':
     main()

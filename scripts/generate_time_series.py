@@ -146,7 +146,7 @@ def main():
     parser.add_option("-D", "--date", dest="raw_date",
                       help="Date to dump PT data for")
     parser.add_option('-v', '--verbose', action="count", dest="verbose",
-                      default=2, help="Increase the verbosity. Use twice for extra effect")
+                      default=3, help="Increase the verbosity. Use twice for extra effect")
     parser.add_option('-q', '--quiet', action="count", dest="quiet",
                       default=0, help="Decrease the verbosity. Use twice for extra effect")
     #Reminder: %default can be used in help strings.

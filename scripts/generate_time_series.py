@@ -117,13 +117,20 @@ def write_data(database, output_filename, date):
         json.dump(dict_with_rows, output_file)
 
 def process_folder(folder_path, output_filename, date):
+    LOG.info('Validating paths...')
     stops_filename, stop_times_filename, calendar_filename = validate_paths(folder_path)
+    LOG.info('Initialising temporary database...')
     database = create_temp_db()
+    LOG.info('Reading calendar data...')
     process_calendar(database, calendar_filename)
+    LOG.info('Reading stops data...')
     process_stops(database, stops_filename)
+    LOG.info('Reading stop times data...')
     process_stop_times(database, stop_times_filename)
+    LOG.info('Dumping JSON...')
     write_data(database, output_filename, date)
     database.close()
+    LOG.info('Done')
 
 def main():
     # Example usage: ./generate_time_series.py -d data/trains/ -o test.json

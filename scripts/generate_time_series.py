@@ -91,8 +91,8 @@ def process_calendar(database, calendar_filename):
         dict_reader = csv.UnicodeCSVDictReader(calendar_file)
         to_db = [(i['service_id'],
                   generate_day_mask(i),
-                  i['start_date'],
-                  i['end_date']) for i in dict_reader]
+                  parse_date(i['start_date']),
+                  parse_date(i['end_date'])) for i in dict_reader]
 
     cur.executemany("INSERT INTO calendar (id, day_mask, start_date, end_date)" +
                     "VALUES (?, ?, ?, ?);", to_db)
@@ -101,15 +101,14 @@ def process_calendar(database, calendar_filename):
 def write_data(database, output_filename, date):
     cur = database.cursor()
     day_of_week = day_of_week_to_mask(date.weekday())
-    formatted_date = date.strftime('%Y-%m-%d')
-    cur.execute("SELECT s.name, s.lat, s.lon, st.departure_time, c.day_mask " +
+    cur.execute("SELECT s.name, s.lat, s.lon, st.departure_time, c.day_mask, c.start_date " +
                 "FROM stop_times st " +
                 "INNER JOIN stops s ON s.id = st.stop_id " +
                 "INNER JOIN calendar c ON c.id = st.service_id " +
                 "WHERE (c.day_mask & ?) == ? " +
                 "AND   (c.start_date <= ? AND c.end_date >= ?) " +
                 "ORDER BY st.departure_time ",
-                (day_of_week, day_of_week, formatted_date, formatted_date))
+                (day_of_week, day_of_week, date, date))
 
     columns = [d[0] for d in cur.description]
     dict_with_rows = [dict(zip(columns, row)) for row in cur.fetchall()]

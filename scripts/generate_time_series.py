@@ -113,8 +113,12 @@ def write_data(database, output_filename, date):
 
     columns = [d[0] for d in cur.description]
     dict_with_rows = [dict(zip(columns, row)) for row in cur.fetchall()]
+    json_structure = {
+        'date': date,
+        'time_series': dict_with_rows
+    }
     with open(output_filename, 'w') as output_file:
-        json.dump(dict_with_rows, output_file, cls=DateTimeEncoder)
+        json.dump(json_structure, output_file, cls=DateTimeEncoder)
 
 def process_folder(folder_path, output_filename, date):
     LOG.info('Validating paths...')

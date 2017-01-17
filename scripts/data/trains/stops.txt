@@ -103,3 +103,4 @@
 "47642","Epsom Railway Station (Epsom)","-36.706341584195","144.321039539468"
 "47647","Wyndham Vale Railway Station (Wyndham Vale)","-37.8717818287661","144.60847208057"
 "47648","Tarneit Railway Station (Tarneit)","-37.8321681307146","144.694714384216"
+"52011","Caroline Springs Railway Station (Ravenhall)","-37.7671526360564","144.73802162301"

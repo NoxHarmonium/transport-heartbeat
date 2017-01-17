@@ -101,7 +101,7 @@ def process_calendar(database, calendar_filename):
 def write_data(database, output_filename, date):
     cur = database.cursor()
     day_of_week = day_of_week_to_mask(date.weekday())
-    cur.execute("SELECT s.name, s.lat, s.lon, st.departure_time, c.day_mask, c.start_date " +
+    cur.execute("SELECT s.name, s.lat, s.lon, st.departure_time, c.day_mask " +
                 "FROM stop_times st " +
                 "INNER JOIN stops s ON s.id = st.stop_id " +
                 "INNER JOIN calendar c ON c.id = st.service_id " +

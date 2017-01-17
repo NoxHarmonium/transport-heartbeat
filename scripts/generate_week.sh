@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-./generate_time_series.py -d data/trains -o 20170109.json -D 2017-01-09 # Monday
-./generate_time_series.py -d data/trains -o 20170110.json -D 2017-01-10 # Tueday
-./generate_time_series.py -d data/trains -o 20170111.json -D 2017-01-11 # Wednesday
-./generate_time_series.py -d data/trains -o 20170112.json -D 2017-01-12 # Thursday
-./generate_time_series.py -d data/trains -o 20170113.json -D 2017-01-13 # Friday
-./generate_time_series.py -d data/trains -o 20170114.json -D 2017-01-14 # Saturday
-./generate_time_series.py -d data/trains -o 20170115.json -D 2017-01-15 # Sunday
+./generate_time_series.py -vv -d data/trains -o output/20170120.json -D 2017-01-20 # Friday
+./generate_time_series.py -vv -d data/trains -o output/20170121.json -D 2017-01-21 # Saturday
+./generate_time_series.py -vv -d data/trains -o output/20170122.json -D 2017-01-22 # Sunday
+./generate_time_series.py -vv -d data/trains -o output/20170123.json -D 2017-01-23 # Monday
+./generate_time_series.py -vv -d data/trains -o output/20170124.json -D 2017-01-24 # Tuesday
+./generate_time_series.py -vv -d data/trains -o output/20170125.json -D 2017-01-25 # Wednesday
+./generate_time_series.py -vv -d data/trains -o output/20170126.json -D 2017-01-26 # Thursday

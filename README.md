@@ -18,3 +18,5 @@ Public transport timetable data provided by Public Transport Victoria under the 
 This dataset provides static timetable data and geographic information in the The General Transit Feed Specification (GTFS) format. It contains scheduled information for all metropolitan and regional trains, all metropolitan and regional bus (including coach) and all metropolitan tram services in Victoria.
 
 For more info please see the source website at: [https://www.data.vic.gov.au/data/dataset/ptv-timetable-and-geographic-information-2015-gtfs](https://www.data.vic.gov.au/data/dataset/ptv-timetable-and-geographic-information-2015-gtfs)
+
+The map is powered by [OpenStreetMap](https://www.openstreetmap.org) and the [custom tileset "Toner"](https://github.com/stamen/toner-carto) by [Stamen Design](https://stamen.com/).

@@ -3,13 +3,13 @@ A web application to visualize public transport in Melbourne Australia
 
 ## Summary
 
-![An example of a transport map](./readme-resources/map.png "An example of a transport map")
-
 This is a project to map major public transport routes in Melbourne Australia and add a visual pulse when a departure occurs on the map. I thought it would be interesting to be able to see how public transport flows through a city.
 
 I think it would also be cool to attach sound effects to different events so you could hear the "heartbeat" of the transport network.
 
 It is just something I am playing around with when I have time.
+
+![An example of a transport map](./readme-resources/map.png "An example of a transport map")
 
 ## Acknowledgments
 

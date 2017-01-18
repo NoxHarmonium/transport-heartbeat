@@ -4,9 +4,9 @@ import * as L from 'Leaflet';
 export default function setupRoutes(map) {
 
 	return Promise.all([
-	  fetch('geojson/bus-lines-simplified.json').then((res) => res.json()),
-	  fetch('geojson/tram-lines-simplified.json').then((res) => res.json()),
-	  fetch('geojson/train-lines-simplified.json').then((res) => res.json())
+	  fetch('json/routes/bus-lines-simplified.json').then((res) => res.json()),
+	  fetch('json/routes/tram-lines-simplified.json').then((res) => res.json()),
+	  fetch('json/routes/train-lines-simplified.json').then((res) => res.json())
 	])
 	  .then((results) => {
 	    L.geoJSON(results[0], {

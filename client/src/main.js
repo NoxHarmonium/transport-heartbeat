@@ -51,4 +51,3 @@ Promise.all([
       });
       map.addLayer(layer);
   });
-

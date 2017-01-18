@@ -13,5 +13,6 @@ export default {
   exports: 'none',
   globals: {
     Leaflet: 'L',
-  }
+  },
+  external: ['Leaflet']
 };

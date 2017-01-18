@@ -17,11 +17,11 @@ function setupBaseLayer() {
 
 function setupRoutes(map) {
 
-	return Promise.all([fetch('geojson/bus-lines-simplified.json').then(function (res) {
+	return Promise.all([fetch('json/routes/bus-lines-simplified.json').then(function (res) {
 		return res.json();
-	}), fetch('geojson/tram-lines-simplified.json').then(function (res) {
+	}), fetch('json/routes/tram-lines-simplified.json').then(function (res) {
 		return res.json();
-	}), fetch('geojson/train-lines-simplified.json').then(function (res) {
+	}), fetch('json/routes/train-lines-simplified.json').then(function (res) {
 		return res.json();
 	})]).then(function (results) {
 		L.geoJSON(results[0], {
@@ -59,7 +59,67 @@ function setupRoutes(map) {
 	});
 }
 
+var classCallCheck = function (instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+};
+
+var createClass = function () {
+  function defineProperties(target, props) {
+    for (var i = 0; i < props.length; i++) {
+      var descriptor = props[i];
+      descriptor.enumerable = descriptor.enumerable || false;
+      descriptor.configurable = true;
+      if ("value" in descriptor) descriptor.writable = true;
+      Object.defineProperty(target, descriptor.key, descriptor);
+    }
+  }
+
+  return function (Constructor, protoProps, staticProps) {
+    if (protoProps) defineProperties(Constructor.prototype, protoProps);
+    if (staticProps) defineProperties(Constructor, staticProps);
+    return Constructor;
+  };
+}();
+
+var TimeSeriesDataManager = function () {
+  function TimeSeriesDataManager() {
+    classCallCheck(this, TimeSeriesDataManager);
+  }
+
+  createClass(TimeSeriesDataManager, [{
+    key: 'padToTwoDigits',
+    value: function padToTwoDigits(num) {
+      var str = num.toString();
+      if (str.length < 2) {
+        return '0' + str;
+      }
+      return str;
+    }
+  }, {
+    key: 'formatDateForFilename',
+    value: function formatDateForFilename(date) {
+      var year = date.getFullYear();
+      var month = this.padToTwoDigits(date.getMonth());
+      var day = this.padToTwoDigits(date.getDate());
+      return '' + year + month + day;
+    }
+  }, {
+    key: 'getTimeSeriesData',
+    value: function getTimeSeriesData(date) {
+      var formattedDate = this.formatDateForFilename(date);
+      return fetch('json/timeseries/' + formattedDate + '.json').then(function (res) {
+        return res.json();
+      });
+    }
+  }]);
+  return TimeSeriesDataManager;
+}();
+
+var dataManager = new TimeSeriesDataManager();
+
 var map = setupBaseLayer();
-setupRoutes(map);
+setupRoutes(map).then(dataManager.getTimeSeriesData(new Date(2017, 1, 20)));
 
 }(L));

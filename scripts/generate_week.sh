@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+#
+# Generates a weeks worth of time series data
+# It is hardcoded to the dates stored in the data directory for now
+#
+
 ./generate_time_series.py -vv -d data/trains -o output/20170120.json -D 2017-01-20 # Friday
 ./generate_time_series.py -vv -d data/trains -o output/20170121.json -D 2017-01-21 # Saturday
 ./generate_time_series.py -vv -d data/trains -o output/20170122.json -D 2017-01-22 # Sunday

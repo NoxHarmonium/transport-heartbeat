@@ -139,7 +139,7 @@ var TimeController = function () {
     key: "reset",
     value: function reset() {
       this.started = false;
-      this.currentTime = new Date(2017, 0, 20);
+      this.currentTime = new Date(2017, 0, 20, 3, 45);
       this.rate = 60 * 5; // Seconds per second
     }
   }, {
@@ -207,6 +207,8 @@ var dataManager = new TimeSeriesDataManager();
 
 var map = setupBaseLayer();
 var timeController = new TimeController();
+var pulsingIcon = L.icon.pulse({ iconSize: [20, 20], color: 'red' });
+var markerLifetime = 1000; //ms
 var eventEmitter = void 0;
 
 setupRoutes(map).then(function () {
@@ -215,6 +217,11 @@ setupRoutes(map).then(function () {
   timeController.start();
   eventEmitter = new TimeSeriesEventEmitter(timeController, data, function (eventTime, event) {
     console.log('[' + eventTime + '] Event occurred: ' + JSON.stringify(event, null, 2));
+    var location = [parseFloat(event.lat), parseFloat(event.lon)];
+    var marker$$1 = L.marker(location, { icon: pulsingIcon }).addTo(map);
+    setTimeout(function () {
+      return map.removeLayer(marker$$1);
+    }, markerLifetime);
   });
   timeController.tickCallbacks.push(function (time) {
     document.getElementById('time_indicator').innerHTML = time;

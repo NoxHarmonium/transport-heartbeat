@@ -8,7 +8,7 @@ export default class TimeController {
 
   reset() {
     this.started = false
-    this.currentTime = new Date(2017, 0, 20);
+    this.currentTime = new Date(2017, 0, 20, 3, 45);
     this.rate = 60 * 5; // Seconds per second
   }
 

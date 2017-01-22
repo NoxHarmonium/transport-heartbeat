@@ -53,10 +53,12 @@ def process_stops(database, stops_filename):
 
 def process_stop_times(database, stop_times_filename):
     cur = database.cursor()
-    cur.execute("CREATE TABLE stop_times (id, sequence, stop_id, departure_time, service_id, " +
-                "FOREIGN KEY(stop_id) REFERENCES stops(id) " +
-                "FOREIGN KEY(service_id) REFERENCES calendar(id) " +
-                "PRIMARY KEY (id, sequence));")
+    cur.execute("""
+        CREATE TABLE stop_times (id, sequence, stop_id, departure_time, service_id,
+        FOREIGN KEY(stop_id) REFERENCES stops(id)
+        FOREIGN KEY(service_id) REFERENCES calendar(id)
+        PRIMARY KEY (id, sequence));
+        """)
     with codecs.open(stop_times_filename, encoding='utf-8-sig') as stop_times_file:
         dict_reader = csv.UnicodeCSVDictReader(stop_times_file)
         to_db = [(i['trip_id'],
@@ -65,9 +67,10 @@ def process_stop_times(database, stop_times_filename):
                   i['departure_time'],
                   i['trip_id'].split('.')[1]) for i in dict_reader]
 
-    cur.executemany("INSERT INTO stop_times " +
-                    "(id, sequence, stop_id, departure_time, service_id) " +
-                    "VALUES (?, ?, ?, ?, ?);", to_db)
+    cur.executemany("""
+        INSERT INTO stop_times (id, sequence, stop_id, departure_time, service_id)
+        VALUES (?, ?, ?, ?, ?);
+        """, to_db)
     database.commit()
 
 def generate_day_mask(csv_dict):
@@ -86,8 +89,9 @@ def day_of_week_to_mask(day_of_week):
 
 def process_calendar(database, calendar_filename):
     cur = database.cursor()
-    cur.execute("CREATE TABLE calendar (id, day_mask, start_date, end_date, " +
-                "PRIMARY KEY (id));")
+    cur.execute("""
+        CREATE TABLE calendar (id, day_mask, start_date, end_date, PRIMARY KEY (id));
+        """)
     with codecs.open(calendar_filename, encoding='utf-8-sig') as calendar_file:
         dict_reader = csv.UnicodeCSVDictReader(calendar_file)
         to_db = [(i['service_id'],
@@ -95,21 +99,24 @@ def process_calendar(database, calendar_filename):
                   parse_date(i['start_date']),
                   parse_date(i['end_date'])) for i in dict_reader]
 
-    cur.executemany("INSERT INTO calendar (id, day_mask, start_date, end_date)" +
-                    "VALUES (?, ?, ?, ?);", to_db)
+    cur.executemany("""
+        INSERT INTO calendar (id, day_mask, start_date, end_date)
+        VALUES (?, ?, ?, ?);
+        """, to_db)
     database.commit()
 
 def write_data(database, output_filename, date):
     cur = database.cursor()
     day_of_week = day_of_week_to_mask(date.weekday())
-    cur.execute("SELECT DISTINCT s.name, s.lat, s.lon, st.departure_time, c.day_mask " +
-                "FROM stop_times st " +
-                "INNER JOIN stops s ON s.id = st.stop_id " +
-                "INNER JOIN calendar c ON c.id = st.service_id " +
-                "WHERE (c.day_mask & ?) == ? " +
-                "AND   (c.start_date <= ? AND c.end_date >= ?) " +
-                "ORDER BY st.departure_time ",
-                (day_of_week, day_of_week, date, date))
+    cur.execute("""
+        SELECT DISTINCT s.name, s.lat, s.lon, st.departure_time, c.day_mask
+        FROM stop_times st
+        INNER JOIN stops s ON s.id = st.stop_id
+        INNER JOIN calendar c ON c.id = st.service_id
+        WHERE (c.day_mask & ?) == ?
+        AND   (c.start_date <= ? AND c.end_date >= ?)
+        ORDER BY st.departure_time
+        """, (day_of_week, day_of_week, date, date))
 
     columns = [d[0] for d in cur.description]
     dict_with_rows = [dict(zip(columns, row)) for row in cur.fetchall()]

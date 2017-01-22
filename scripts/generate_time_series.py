@@ -21,6 +21,7 @@ import unicodecsv as csv
 
 from dateutil.parser import parse as parse_date
 from datetime_encoder import DateTimeEncoder
+from utils import window, parse_time_with_base_date
 
 LOG = logging.getLogger(__name__)
 
@@ -36,7 +37,10 @@ def validate_paths(folder_path):
     calendar_filename = os.path.join(folder_path, 'calendar.txt')
     if not os.path.exists(calendar_filename):
         sys.exit("Missing file: 'calendar.txt'")
-    return stops_filename, stop_times_filename, calendar_filename
+    trips_filename = os.path.join(folder_path, 'trips.txt')
+    if not os.path.exists(calendar_filename):
+        sys.exit("Missing file: 'trips.txt'")
+    return stops_filename, stop_times_filename, calendar_filename, trips_filename
 
 def create_temp_db():
     return sqlite3.connect(":memory:")
@@ -51,24 +55,40 @@ def process_stops(database, stops_filename):
     cur.executemany("INSERT INTO stops (id, name, lat, lon) VALUES (?, ?, ?, ?);", to_db)
     database.commit()
 
-def process_stop_times(database, stop_times_filename):
+def process_trips(database, trips_filename):
     cur = database.cursor()
     cur.execute("""
-        CREATE TABLE stop_times (id, sequence, stop_id, departure_time, service_id,
+        CREATE TABLE trips (id, service_id, trip_id,
+        FOREIGN KEY(service_id) REFERENCES calendar(id)
+        FOREIGN KEY(trip_id) REFERENCES trips(id)
+        PRIMARY KEY (trip_id));
+        """)
+    with codecs.open(trips_filename, encoding='utf-8-sig') as trips_file:
+        dict_reader = csv.UnicodeCSVDictReader(trips_file)
+        to_db = [(i['route_id'], i['service_id'], i['trip_id']) for i in dict_reader]
+
+    cur.executemany("INSERT INTO trips (id, service_id, trip_id) VALUES (?, ?, ?);", to_db)
+    database.commit()
+
+def process_stop_times(database, stop_times_filename, date):
+    cur = database.cursor()
+    cur.execute("""
+        CREATE TABLE stop_times (id, sequence, stop_id, departure_time, arrival_time, service_id,
         FOREIGN KEY(stop_id) REFERENCES stops(id)
         FOREIGN KEY(service_id) REFERENCES calendar(id)
         PRIMARY KEY (id, sequence));
         """)
     with codecs.open(stop_times_filename, encoding='utf-8-sig') as stop_times_file:
         dict_reader = csv.UnicodeCSVDictReader(stop_times_file)
-        to_db = [(i['trip_id'],
-                  i['stop_sequence'],
-                  i['stop_id'],
-                  i['departure_time'],
-                  i['trip_id'].split('.')[1]) for i in dict_reader]
+        to_db = [(curr['trip_id'],
+                  curr['stop_sequence'],
+                  curr['stop_id'],
+                  parse_time_with_base_date(curr['departure_time'], date),
+                  parse_time_with_base_date(after['departure_time'], date)
+                 ) for curr, after in window(dict_reader)]
 
     cur.executemany("""
-        INSERT INTO stop_times (id, sequence, stop_id, departure_time, service_id)
+        INSERT INTO stop_times (id, sequence, stop_id, departure_time, arrival_time)
         VALUES (?, ?, ?, ?, ?);
         """, to_db)
     database.commit()
@@ -108,11 +128,13 @@ def process_calendar(database, calendar_filename):
 def write_data(database, output_filename, date):
     cur = database.cursor()
     day_of_week = day_of_week_to_mask(date.weekday())
+    print "date: %s" % date
     cur.execute("""
-        SELECT DISTINCT s.name, s.lat, s.lon, st.departure_time, c.day_mask
+        SELECT DISTINCT s.name, s.lat, s.lon, st.departure_time, st.arrival_time, c.day_mask, st.id
         FROM stop_times st
         INNER JOIN stops s ON s.id = st.stop_id
-        INNER JOIN calendar c ON c.id = st.service_id
+        INNER JOIN trips t ON st.id = t.trip_id
+        INNER JOIN calendar c ON c.id = t.service_id
         WHERE (c.day_mask & ?) == ?
         AND   (c.start_date <= ? AND c.end_date >= ?)
         ORDER BY st.departure_time
@@ -129,7 +151,8 @@ def write_data(database, output_filename, date):
 
 def process_folder(folder_path, output_filename, date):
     LOG.info('Validating paths...')
-    stops_filename, stop_times_filename, calendar_filename = validate_paths(folder_path)
+    stops_filename, stop_times_filename, \
+        calendar_filename, trips_filename = validate_paths(folder_path)
     LOG.info('Initialising temporary database...')
     database = create_temp_db()
     LOG.info('Reading calendar data...')
@@ -137,7 +160,9 @@ def process_folder(folder_path, output_filename, date):
     LOG.info('Reading stops data...')
     process_stops(database, stops_filename)
     LOG.info('Reading stop times data...')
-    process_stop_times(database, stop_times_filename)
+    process_stop_times(database, stop_times_filename, date)
+    LOG.info('Reading trips data...')
+    process_trips(database, trips_filename)
     LOG.info('Dumping JSON...')
     write_data(database, output_filename, date)
     database.close()

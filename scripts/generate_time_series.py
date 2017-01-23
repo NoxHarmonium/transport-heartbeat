@@ -128,7 +128,6 @@ def process_calendar(database, calendar_filename):
 def write_data(database, output_filename, date):
     cur = database.cursor()
     day_of_week = day_of_week_to_mask(date.weekday())
-    print "date: %s" % date
     cur.execute("""
         SELECT DISTINCT s.name, s.lat, s.lon, st.departure_time, st.arrival_time, c.day_mask, st.id
         FROM stop_times st

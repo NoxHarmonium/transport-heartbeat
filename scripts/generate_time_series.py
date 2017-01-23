@@ -21,7 +21,7 @@ import unicodecsv as csv
 
 from dateutil.parser import parse as parse_date
 from datetime_encoder import DateTimeEncoder
-from utils import window, parse_time_with_base_date
+from utils import window, parse_time_with_base_date, safe_get
 
 LOG = logging.getLogger(__name__)
 
@@ -73,8 +73,9 @@ def process_trips(database, trips_filename):
 def process_stop_times(database, stop_times_filename, date):
     cur = database.cursor()
     cur.execute("""
-        CREATE TABLE stop_times (id, sequence, stop_id, departure_time, arrival_time, service_id,
-        FOREIGN KEY(stop_id) REFERENCES stops(id)
+        CREATE TABLE stop_times (id, sequence, departure_stop_id, departure_time, arrival_stop_id, arrival_time, service_id,
+        FOREIGN KEY(departure_stop_id) REFERENCES stops(id)
+        FOREIGN KEY(arrival_stop_id) REFERENCES stops(id)
         FOREIGN KEY(service_id) REFERENCES calendar(id)
         PRIMARY KEY (id, sequence));
         """)
@@ -84,12 +85,13 @@ def process_stop_times(database, stop_times_filename, date):
                   curr['stop_sequence'],
                   curr['stop_id'],
                   parse_time_with_base_date(curr['departure_time'], date),
-                  parse_time_with_base_date(after['departure_time'], date)
-                 ) for curr, after in window(dict_reader)]
+                  safe_get(after, 'stop_id'),
+                  parse_time_with_base_date(safe_get(after, 'departure_time'), date)
+                 ) for curr, after in window(dict_reader, pad_right_edge=True)]
 
     cur.executemany("""
-        INSERT INTO stop_times (id, sequence, stop_id, departure_time, arrival_time)
-        VALUES (?, ?, ?, ?, ?);
+        INSERT INTO stop_times (id, sequence, departure_stop_id, departure_time, arrival_stop_id, arrival_time)
+        VALUES (?, ?, ?, ?, ?, ?);
         """, to_db)
     database.commit()
 
@@ -129,7 +131,8 @@ def write_data(database, output_filename, date):
     cur = database.cursor()
     day_of_week = day_of_week_to_mask(date.weekday())
     cur.execute("""
-        SELECT DISTINCT s.name, s.lat, s.lon, st.departure_time, st.arrival_time, c.day_mask, st.id
+        SELECT DISTINCT s1.name, s1.lat as arrival_lat, s1.lon as arrival_lon, s2.lat as departure_lat,
+            s2.lon as departure_lon, st.departure_time, st.arrival_time, st.id
         FROM stop_times st
         INNER JOIN stops s ON s.id = st.stop_id
         INNER JOIN trips t ON st.id = t.trip_id

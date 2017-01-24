@@ -82,7 +82,7 @@ def process_stop_times(database, stop_times_filename, date):
     with codecs.open(stop_times_filename, encoding='utf-8-sig') as stop_times_file:
         dict_reader = csv.UnicodeCSVDictReader(stop_times_file)
         to_db = [(curr['trip_id'],
-                  curr['stop_sequence'],
+                  int(curr['stop_sequence']),
                   curr['stop_id'],
                   parse_time_with_base_date(curr['departure_time'], date),
                   safe_get(after, 'stop_id'),
@@ -93,6 +93,14 @@ def process_stop_times(database, stop_times_filename, date):
         INSERT INTO stop_times (id, sequence, departure_stop_id, departure_time, arrival_stop_id, arrival_time)
         VALUES (?, ?, ?, ?, ?, ?);
         """, to_db)
+    cur.execute("""
+        UPDATE stop_times SET arrival_stop_id = NULL, arrival_time = NULL
+        WHERE rowid in (
+            SELECT rowid FROM stop_times
+            GROUP BY id
+            ORDER BY sequence ASC
+            )
+        """)
     database.commit()
 
 def generate_day_mask(csv_dict):
@@ -131,10 +139,11 @@ def write_data(database, output_filename, date):
     cur = database.cursor()
     day_of_week = day_of_week_to_mask(date.weekday())
     cur.execute("""
-        SELECT DISTINCT s1.name, s1.lat as arrival_lat, s1.lon as arrival_lon, s2.lat as departure_lat,
-            s2.lon as departure_lon, st.departure_time, st.arrival_time, st.id
+        SELECT DISTINCT s1.name, s1.lat as departure_lat, s1.lon as departure_lon, s2.lat as arrival_lat,
+            s2.lon as arrival_lon, st.departure_time, st.arrival_time, st.id
         FROM stop_times st
-        INNER JOIN stops s ON s.id = st.stop_id
+        INNER JOIN stops s1 ON s1.id = st.departure_stop_id
+        LEFT  JOIN stops s2 ON s2.id = st.arrival_stop_id
         INNER JOIN trips t ON st.id = t.trip_id
         INNER JOIN calendar c ON c.id = t.service_id
         WHERE (c.day_mask & ?) == ?

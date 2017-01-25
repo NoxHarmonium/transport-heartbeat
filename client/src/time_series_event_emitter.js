@@ -12,7 +12,7 @@ export default class TimeSeriesEventEmitter {
   tickCallback(time) {
     if (!this.eventCallback) { return }
 
-    while (time > this.timeSeriesData[0].date) {
+    while (time > this.timeSeriesData[0].departure_time) {
       this.eventCallback(time, this.timeSeriesData.shift())
     }
   }

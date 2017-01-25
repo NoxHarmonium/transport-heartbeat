@@ -118,8 +118,12 @@ var TimeSeriesDataManager = function () {
     value: function prepareData(rawData) {
       var baseDate = rawData.date.split('T')[0];
       return rawData.time_series.map(function (timeSeriesEntry) {
-        var combinedDate = baseDate + 'T' + timeSeriesEntry.departure_time + '+11:00';
-        timeSeriesEntry.date = new Date(combinedDate);
+        if (timeSeriesEntry.departure_time) {
+          timeSeriesEntry.departure_time = new Date(timeSeriesEntry.departure_time + ' GMT+1100');
+        }
+        if (timeSeriesEntry.arrival_time) {
+          timeSeriesEntry.arrival_time = new Date(timeSeriesEntry.arrival_time + ' GMT+1100');
+        }
         return timeSeriesEntry;
       });
     }
@@ -195,7 +199,7 @@ var TimeSeriesEventEmitter = function () {
         return;
       }
 
-      while (time > this.timeSeriesData[0].date) {
+      while (time > this.timeSeriesData[0].departure_time) {
         this.eventCallback(time, this.timeSeriesData.shift());
       }
     }
@@ -203,12 +207,90 @@ var TimeSeriesEventEmitter = function () {
   return TimeSeriesEventEmitter;
 }();
 
+/*
+{
+"departure_lat": "-38.2158144726992",
+"name": "Waurn Ponds Railway Station (Waurn Ponds)",
+"arrival_lon": "144.35505671194",
+"arrival_time": "2017-01-20 04:37:00",
+"departure_lon": "144.30681939977",
+"arrival_lat": "-38.1985490047076",
+"id": "5830.T0.1-V23-D-mjp-1.22.R",
+"departure_time": "2017-01-20 04:32:00"
+}*/
+var pulsingIcon = L.icon.pulse({ iconSize: [20, 20], color: 'red' });
+
+var MarkerManager = function () {
+  function MarkerManager(map) {
+    classCallCheck(this, MarkerManager);
+
+    this.map = map;
+    this.markers = {};
+    this.markerCooldown = 1000;
+  }
+
+  createClass(MarkerManager, [{
+    key: 'eventToLocation',
+    value: function eventToLocation(event) {
+      return [parseFloat(event.departure_lat), parseFloat(event.departure_lon)];
+    }
+  }, {
+    key: 'eventIsNew',
+    value: function eventIsNew(event) {
+      return !(event.id in this.markers);
+    }
+  }, {
+    key: 'eventIsLast',
+    value: function eventIsLast(event) {
+      return event.arrival_time === null;
+    }
+  }, {
+    key: 'createMarker',
+    value: function createMarker(event) {
+      var latLng = this.eventToLocation(event);
+      var marker$$1 = L.marker(latLng, { icon: pulsingIcon }).addTo(this.map);
+      this.markers[event.id] = marker$$1;
+    }
+  }, {
+    key: 'updateMarker',
+    value: function updateMarker(event) {
+      var latLng = this.eventToLocation(event);
+      var marker$$1 = this.markers[event.id];
+      marker$$1.setLatLng(latLng);
+    }
+  }, {
+    key: 'destroyMarker',
+    value: function destroyMarker(event) {
+      var _this = this;
+
+      this.updateMarker(event);
+      var id = event.id;
+      var marker$$1 = this.markers[id];
+      setTimeout(function () {
+        _this.markers[id] = null;
+        _this.map.removeLayer(marker$$1);
+      }, this.markerCooldown);
+    }
+  }, {
+    key: 'handleEvent',
+    value: function handleEvent(event) {
+      if (this.eventIsNew(event)) {
+        this.createMarker(event);
+      } else if (this.eventIsLast(event)) {
+        this.destroyMarker(event);
+      } else {
+        this.updateMarker(event);
+      }
+    }
+  }]);
+  return MarkerManager;
+}();
+
 var dataManager = new TimeSeriesDataManager();
 
 var map = setupBaseLayer();
 var timeController = new TimeController();
-var pulsingIcon = L.icon.pulse({ iconSize: [20, 20], color: 'red' });
-var markerLifetime = 1000; //ms
+var markerManager = new MarkerManager(map);
 var eventEmitter = void 0;
 
 setupRoutes(map).then(function () {
@@ -216,12 +298,7 @@ setupRoutes(map).then(function () {
 }).then(function (data) {
   timeController.start();
   eventEmitter = new TimeSeriesEventEmitter(timeController, data, function (eventTime, event) {
-    console.log('[' + eventTime + '] Event occurred: ' + JSON.stringify(event, null, 2));
-    var location = [parseFloat(event.lat), parseFloat(event.lon)];
-    var marker$$1 = L.marker(location, { icon: pulsingIcon }).addTo(map);
-    setTimeout(function () {
-      return map.removeLayer(marker$$1);
-    }, markerLifetime);
+    markerManager.handleEvent(event);
   });
   timeController.tickCallbacks.push(function (time) {
     document.getElementById('time_indicator').innerHTML = time;

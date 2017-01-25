@@ -26,8 +26,12 @@ export default class TimeSeriesDataManager {
   prepareData(rawData) {
     const baseDate = rawData.date.split('T')[0];
     return rawData.time_series.map((timeSeriesEntry) => {
-      const combinedDate = `${baseDate}T${timeSeriesEntry.departure_time}+11:00`;
-      timeSeriesEntry.date = new Date(combinedDate);
+      if (timeSeriesEntry.departure_time) {
+        timeSeriesEntry.departure_time = new Date(`${timeSeriesEntry.departure_time} GMT+1100`);
+      }
+      if (timeSeriesEntry.arrival_time) {
+        timeSeriesEntry.arrival_time = new Date(`${timeSeriesEntry.arrival_time} GMT+1100`);
+      }
       return timeSeriesEntry;
     });
   }

@@ -49,6 +49,7 @@ export default class MarkerManager {
     this.updateMarker(event)
     const id = event.id
     const marker = this.markers[id];
+    L.DomUtil.addClass(marker._icon, 'marker-destroyed');
     setTimeout(() => {
       this.markers[id] = null;
       this.map.removeLayer(marker);

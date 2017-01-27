@@ -266,6 +266,7 @@ var MarkerManager = function () {
       this.updateMarker(event);
       var id = event.id;
       var marker$$1 = this.markers[id];
+      L.DomUtil.addClass(marker$$1._icon, 'marker-destroyed');
       setTimeout(function () {
         _this.markers[id] = null;
         _this.map.removeLayer(marker$$1);

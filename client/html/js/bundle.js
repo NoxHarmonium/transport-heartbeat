@@ -238,17 +238,6 @@ var MarkerAnimator = function () {
     return MarkerAnimator;
 }();
 
-/*
-{
-"departure_lat": "-38.2158144726992",
-"name": "Waurn Ponds Railway Station (Waurn Ponds)",
-"arrival_lon": "144.35505671194",
-"arrival_time": "2017-01-20 04:37:00",
-"departure_lon": "144.30681939977",
-"arrival_lat": "-38.1985490047076",
-"id": "5830.T0.1-V23-D-mjp-1.22.R",
-"departure_time": "2017-01-20 04:32:00"
-}*/
 var pulsingIcon = L.icon.pulse({ iconSize: [20, 20], color: 'red' });
 
 var MarkerManager = function () {

@@ -143,7 +143,7 @@ var TimeController = function () {
     key: "reset",
     value: function reset() {
       this.started = false;
-      this.currentTime = new Date(2017, 0, 20, 3, 45);
+      this.currentTime = new Date(2017, 0, 20, 4, 59);
       this.rate = 60 * 5; // Seconds per second
     }
   }, {
@@ -207,6 +207,37 @@ var TimeSeriesEventEmitter = function () {
   return TimeSeriesEventEmitter;
 }();
 
+var MarkerAnimator = function () {
+    function MarkerAnimator(targetMarker, origin, destination, startTime, endTime) {
+        classCallCheck(this, MarkerAnimator);
+
+        this.targetMarker = targetMarker;
+        this.origin = origin;
+        this.destination = destination;
+        this.startTime = startTime;
+        this.endTime = endTime;
+    }
+
+    createClass(MarkerAnimator, [{
+        key: "tick",
+        value: function tick(time) {
+            var progress = this.clamp((time - this.startTime) / (this.endTime - this.startTime), 0, 1);
+            var latDelta = (this.destination[0] - this.origin[0]) * progress;
+            var lonDelta = (this.destination[1] - this.origin[1]) * progress;
+            if (isNaN(latDelta) || isNaN(lonDelta)) {
+                return;
+            }
+            this.targetMarker.setLatLng([this.origin[0] + latDelta, this.origin[1] + lonDelta]);
+        }
+    }, {
+        key: "clamp",
+        value: function clamp(value, min, max) {
+            return Math.min(Math.max(value, min), max);
+        }
+    }]);
+    return MarkerAnimator;
+}();
+
 /*
 {
 "departure_lat": "-38.2158144726992",
@@ -221,18 +252,29 @@ var TimeSeriesEventEmitter = function () {
 var pulsingIcon = L.icon.pulse({ iconSize: [20, 20], color: 'red' });
 
 var MarkerManager = function () {
-  function MarkerManager(map) {
+  function MarkerManager(map, timeController) {
+    var _this = this;
+
     classCallCheck(this, MarkerManager);
 
     this.map = map;
     this.markers = {};
+    this.animators = {};
     this.markerCooldown = 1000;
+    timeController.tickCallbacks.push(function (time) {
+      return _this.tick(time);
+    });
   }
 
   createClass(MarkerManager, [{
-    key: 'eventToLocation',
-    value: function eventToLocation(event) {
+    key: 'destinationFromEvent',
+    value: function destinationFromEvent(event) {
       return [parseFloat(event.departure_lat), parseFloat(event.departure_lon)];
+    }
+  }, {
+    key: 'arrivalFromEvent',
+    value: function arrivalFromEvent(event) {
+      return [parseFloat(event.arrival_lat), parseFloat(event.arrival_lon)];
     }
   }, {
     key: 'eventIsNew',
@@ -247,29 +289,38 @@ var MarkerManager = function () {
   }, {
     key: 'createMarker',
     value: function createMarker(event) {
-      var latLng = this.eventToLocation(event);
-      var marker$$1 = L.marker(latLng, { icon: pulsingIcon }).addTo(this.map);
+      var origin = this.destinationFromEvent(event);
+      var destination = this.arrivalFromEvent(event);
+      var marker$$1 = L.marker(origin, { icon: pulsingIcon }).addTo(this.map);
       this.markers[event.id] = marker$$1;
+      if (destination) {
+        this.animators[event.id] = new MarkerAnimator(marker$$1, origin, destination, event.departure_time, event.arrival_time);
+      }
     }
   }, {
     key: 'updateMarker',
     value: function updateMarker(event) {
-      var latLng = this.eventToLocation(event);
+      var origin = this.destinationFromEvent(event);
+      var destination = this.arrivalFromEvent(event);
       var marker$$1 = this.markers[event.id];
-      marker$$1.setLatLng(latLng);
+      if (destination) {
+        this.animators[event.id] = new MarkerAnimator(marker$$1, origin, destination, event.departure_time, event.arrival_time);
+      }
+      marker$$1.setLatLng(origin);
     }
   }, {
     key: 'destroyMarker',
     value: function destroyMarker(event) {
-      var _this = this;
+      var _this2 = this;
 
       this.updateMarker(event);
       var id = event.id;
       var marker$$1 = this.markers[id];
       L.DomUtil.addClass(marker$$1._icon, 'marker-destroyed');
       setTimeout(function () {
-        _this.markers[id] = null;
-        _this.map.removeLayer(marker$$1);
+        delete _this2.markers[id];
+        delete _this2.animators[event.id];
+        _this2.map.removeLayer(marker$$1);
       }, this.markerCooldown);
     }
   }, {
@@ -283,6 +334,13 @@ var MarkerManager = function () {
         this.updateMarker(event);
       }
     }
+  }, {
+    key: 'tick',
+    value: function tick(time) {
+      for (var tripId in this.animators) {
+        this.animators[tripId].tick(time);
+      }
+    }
   }]);
   return MarkerManager;
 }();
@@ -291,7 +349,7 @@ var dataManager = new TimeSeriesDataManager();
 
 var map = setupBaseLayer();
 var timeController = new TimeController();
-var markerManager = new MarkerManager(map);
+var markerManager = new MarkerManager(map, timeController);
 var eventEmitter = void 0;
 
 setupRoutes(map).then(function () {

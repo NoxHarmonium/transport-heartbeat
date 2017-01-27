@@ -10,7 +10,7 @@ const dataManager = new TimeSeriesDataManager();
 
 const map = setupBaseLayer();
 const timeController = new TimeController();
-const markerManager = new MarkerManager(map);
+const markerManager = new MarkerManager(map, timeController);
 const markerLifetime = 1000; //ms
 let eventEmitter;
 

@@ -10,19 +10,26 @@
 "departure_time": "2017-01-20 04:32:00"
 }*/
 import * as L from 'Leaflet';
+import MarkerAnimator from './marker_animator.js'
 
 const pulsingIcon = L.icon.pulse({ iconSize: [20, 20], color: 'red' });
 
 export default class MarkerManager {
 
-  constructor(map) {
+  constructor(map, timeController) {
     this.map = map;
     this.markers = {};
+    this.animators = {};
     this.markerCooldown = 1000;
+    timeController.tickCallbacks.push((time) => this.tick(time));
   }
 
-  eventToLocation(event) {
+  destinationFromEvent(event) {
     return [parseFloat(event.departure_lat), parseFloat(event.departure_lon)];
+  }
+
+  arrivalFromEvent(event) {
+    return [parseFloat(event.arrival_lat), parseFloat(event.arrival_lon)];
   }
 
   eventIsNew(event) {
@@ -34,15 +41,23 @@ export default class MarkerManager {
   }
 
   createMarker(event) {
-    const latLng = this.eventToLocation(event);
-    const marker = L.marker(latLng, { icon: pulsingIcon }).addTo(this.map);
+    const origin = this.destinationFromEvent(event);
+    const destination = this.arrivalFromEvent(event);
+    const marker = L.marker(origin, { icon: pulsingIcon }).addTo(this.map);
     this.markers[event.id] = marker;
+    if (destination) {
+      this.animators[event.id] = new MarkerAnimator(marker, origin, destination, event.departure_time, event.arrival_time);
+    }
   }
 
   updateMarker(event) {
-    const latLng = this.eventToLocation(event);
+    const origin = this.destinationFromEvent(event);
+    const destination = this.arrivalFromEvent(event);
     const marker = this.markers[event.id]
-    marker.setLatLng(latLng)
+    if (destination) {
+      this.animators[event.id] = new MarkerAnimator(marker, origin, destination, event.departure_time, event.arrival_time);
+    }
+    marker.setLatLng(origin)
   }
 
   destroyMarker(event) {
@@ -51,7 +66,8 @@ export default class MarkerManager {
     const marker = this.markers[id];
     L.DomUtil.addClass(marker._icon, 'marker-destroyed');
     setTimeout(() => {
-      this.markers[id] = null;
+      delete this.markers[id];
+      delete this.animators[event.id];
       this.map.removeLayer(marker);
     }, this.markerCooldown);
   }
@@ -63,6 +79,12 @@ export default class MarkerManager {
       this.destroyMarker(event);
     } else {
       this.updateMarker(event);
+    }
+  }
+
+  tick(time) {
+    for (const tripId in this.animators) {
+      this.animators[tripId].tick(time);
     }
   }
 }

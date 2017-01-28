@@ -8,3 +8,29 @@
     transform: scale(0.1, 0.1);
     opacity: 0;
 }
+.marker-pinged:after {
+    content: "";
+    -webkit-border-radius: 100%;
+    border-radius: 100%;
+    height: 300%;
+    width: 300%;
+    position: absolute;
+    margin: -100% 0 0 -100%;
+    animation: pulsate 0.2s ease-out;
+    animation-iteration-count: 1;
+    animation-fill-mode: forwards;
+}
+
+@keyframes pulsate {
+    0% {
+        transform: scale(0.1, 0.1);
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.2, 1.2);
+        opacity: 0;
+    }
+}

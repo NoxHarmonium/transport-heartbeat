@@ -30,6 +30,13 @@ export default class MarkerManager {
     return event.arrival_time === null
   }
 
+  pingMarker(marker) {
+    L.DomUtil.removeClass(marker._icon, 'marker-pinged');
+    setTimeout(() => {
+      L.DomUtil.addClass(marker._icon, 'marker-pinged');
+    }, 0);
+  }
+
   createMarker(event) {
     const origin = this.destinationFromEvent(event);
     const destination = this.arrivalFromEvent(event);
@@ -38,6 +45,7 @@ export default class MarkerManager {
     if (destination) {
       this.animators[event.id] = new MarkerAnimator(marker, origin, destination, event.departure_time, event.arrival_time);
     }
+    this.pingMarker(marker);
   }
 
   updateMarker(event) {
@@ -47,7 +55,8 @@ export default class MarkerManager {
     if (destination) {
       this.animators[event.id] = new MarkerAnimator(marker, origin, destination, event.departure_time, event.arrival_time);
     }
-    marker.setLatLng(origin)
+    marker.setLatLng(origin);
+    this.pingMarker(marker);
   }
 
   destroyMarker(event) {

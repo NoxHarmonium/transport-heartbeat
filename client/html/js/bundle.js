@@ -276,6 +276,14 @@ var MarkerManager = function () {
       return event.arrival_time === null;
     }
   }, {
+    key: 'pingMarker',
+    value: function pingMarker(marker$$1) {
+      L.DomUtil.removeClass(marker$$1._icon, 'marker-pinged');
+      setTimeout(function () {
+        L.DomUtil.addClass(marker$$1._icon, 'marker-pinged');
+      }, 0);
+    }
+  }, {
     key: 'createMarker',
     value: function createMarker(event) {
       var origin = this.destinationFromEvent(event);
@@ -285,6 +293,7 @@ var MarkerManager = function () {
       if (destination) {
         this.animators[event.id] = new MarkerAnimator(marker$$1, origin, destination, event.departure_time, event.arrival_time);
       }
+      this.pingMarker(marker$$1);
     }
   }, {
     key: 'updateMarker',
@@ -296,6 +305,7 @@ var MarkerManager = function () {
         this.animators[event.id] = new MarkerAnimator(marker$$1, origin, destination, event.departure_time, event.arrival_time);
       }
       marker$$1.setLatLng(origin);
+      this.pingMarker(marker$$1);
     }
   }, {
     key: 'destroyMarker',

@@ -3,7 +3,8 @@ import MarkerAnimator from './marker_animator'
 import TimeController from './time_controller'
 import TimeSeriesEntry from './time_series_entry'
 
-const pulsingIcon = L.icon.pulse({ iconSize: [20, 20], color: 'red' });
+// FutureWork: Create type definitions for leaflet-icon-pulse
+const pulsingIcon: L.Icon = (L.icon as any).pulse({ iconSize: [20, 20], color: 'red' });
 
 export default class MarkerManager {
 
@@ -37,9 +38,10 @@ export default class MarkerManager {
   }
 
   pingMarker(marker: L.Marker) {
-    L.DomUtil.removeClass(marker._icon, 'marker-pinged');
+    const markerElement: HTMLElement = (marker as any)._icon // _icon is private but I can't find a public alternative
+    L.DomUtil.removeClass(markerElement, 'marker-pinged');
     setTimeout(() => {
-      L.DomUtil.addClass(marker._icon, 'marker-pinged');
+      L.DomUtil.addClass(markerElement, 'marker-pinged');
     }, 0);
   }
 
@@ -69,7 +71,8 @@ export default class MarkerManager {
     this.updateMarker(event)
     const id = event.id
     const marker = this.markers[id];
-    L.DomUtil.addClass(marker._icon, 'marker-destroyed');
+    const markerElement: HTMLElement = (marker as any)._icon // _icon is private but I can't find a public alternative
+    L.DomUtil.addClass(markerElement, 'marker-destroyed');
     setTimeout(() => {
       delete this.markers[id];
       delete this.animators[event.id];

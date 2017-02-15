@@ -1,43 +1,49 @@
 
-import * as L from 'Leaflet';
-import MarkerAnimator from './marker_animator.js'
+import MarkerAnimator from './marker_animator'
+import TimeController from './time_controller'
+import TimeSeriesEntry from './time_series_entry'
 
 const pulsingIcon = L.icon.pulse({ iconSize: [20, 20], color: 'red' });
 
 export default class MarkerManager {
 
-  constructor(map, timeController) {
+  private map: L.Map;
+  private markers: { [id: string]: L.Marker };
+  private animators: { [id: string]: MarkerAnimator };
+  private markerCooldown: number;
+
+  constructor(map: L.Map, timeController: TimeController) {
     this.map = map;
     this.markers = {};
     this.animators = {};
     this.markerCooldown = 1000;
-    timeController.tickCallbacks.push((time) => this.tick(time));
+    timeController.registerCallback((time: Date) => this.tick(time));
   }
 
-  destinationFromEvent(event) {
+  destinationFromEvent(event: TimeSeriesEntry): L.LatLngTuple {
     return [parseFloat(event.departure_lat), parseFloat(event.departure_lon)];
   }
 
-  arrivalFromEvent(event) {
+  arrivalFromEvent(event: TimeSeriesEntry): L.LatLngTuple {
     return [parseFloat(event.arrival_lat), parseFloat(event.arrival_lon)];
   }
 
-  eventIsNew(event) {
+  eventIsNew(event: TimeSeriesEntry): boolean {
     return !(event.id in this.markers);
   }
 
-  eventIsLast(event) {
+  eventIsLast(event: TimeSeriesEntry): boolean {
     return event.arrival_time === null
   }
 
-  pingMarker(marker) {
+  pingMarker(marker: L.Marker) {
     L.DomUtil.removeClass(marker._icon, 'marker-pinged');
     setTimeout(() => {
       L.DomUtil.addClass(marker._icon, 'marker-pinged');
     }, 0);
   }
 
-  createMarker(event) {
+  createMarker(event: TimeSeriesEntry) {
     const origin = this.destinationFromEvent(event);
     const destination = this.arrivalFromEvent(event);
     const marker = L.marker(origin, { icon: pulsingIcon }).addTo(this.map);
@@ -48,7 +54,7 @@ export default class MarkerManager {
     this.pingMarker(marker);
   }
 
-  updateMarker(event) {
+  updateMarker(event: TimeSeriesEntry) {
     const origin = this.destinationFromEvent(event);
     const destination = this.arrivalFromEvent(event);
     const marker = this.markers[event.id]
@@ -59,7 +65,7 @@ export default class MarkerManager {
     this.pingMarker(marker);
   }
 
-  destroyMarker(event) {
+  destroyMarker(event: TimeSeriesEntry) {
     this.updateMarker(event)
     const id = event.id
     const marker = this.markers[id];
@@ -71,7 +77,7 @@ export default class MarkerManager {
     }, this.markerCooldown);
   }
 
-  handleEvent(event) {
+  handleEvent(event: TimeSeriesEntry) {
     if (this.eventIsNew(event)) {
       this.createMarker(event);
     } else if (this.eventIsLast(event)) {
@@ -81,7 +87,7 @@ export default class MarkerManager {
     }
   }
 
-  tick(time) {
+  tick(time: Date) {
     for (const tripId in this.animators) {
       this.animators[tripId].tick(time);
     }

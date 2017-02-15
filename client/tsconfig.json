@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "module": "system",
+        "target": "es6",
+        "pretty": true,
+        "sourceMap": true,
+        "outFile": "html/js/bundle.js",
+        "rootDir": "src",
+        "alwaysStrict": true,
+        "forceConsistentCasingInFileNames": true,
+        "noEmitOnError": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitAny": true,
+        "noImplicitReturns": true,
+        "noImplicitThis": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "strictNullChecks": true
+    },
+    "exclude": [
+        "node_modules"
+    ]
+}

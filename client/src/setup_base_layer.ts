@@ -1,6 +1,4 @@
 
-import * as L from 'Leaflet';
-
 export default function setupBaseLayer() {
 
 	var layer = new L.StamenTileLayer("toner-background", {

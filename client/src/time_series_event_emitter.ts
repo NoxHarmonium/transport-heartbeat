@@ -1,7 +1,7 @@
 
-import TimeController from './time_controller'
-import TimeSeriesEntry from './time_series_entry'
-import { EventCallbackFn } from './type_defs'
+import TimeController from "./time_controller";
+import TimeSeriesEntry from "./time_series_entry";
+import { EventCallbackFn } from "./type_defs";
 
 export default class TimeSeriesEventEmitter {
 
@@ -18,10 +18,10 @@ export default class TimeSeriesEventEmitter {
   }
 
   tickCallback(time: Date) {
-    if (!this.eventCallback) { return }
+    if (!this.eventCallback) { return; }
 
     while (time > this.timeSeriesData[0].departure_time) {
-      this.eventCallback(time, this.timeSeriesData.shift())
+      this.eventCallback(time, this.timeSeriesData.shift());
     }
   }
 

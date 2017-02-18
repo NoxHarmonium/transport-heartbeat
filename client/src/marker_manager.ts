@@ -1,10 +1,10 @@
 
-import MarkerAnimator from './marker_animator'
-import TimeController from './time_controller'
-import TimeSeriesEntry from './time_series_entry'
+import MarkerAnimator from "./marker_animator";
+import TimeController from "./time_controller";
+import TimeSeriesEntry from "./time_series_entry";
 
 // FutureWork: Create type definitions for leaflet-icon-pulse
-const pulsingIcon: L.Icon = (L.icon as any).pulse({ iconSize: [20, 20], color: 'red' });
+const pulsingIcon: L.Icon = (L.icon as any).pulse({ iconSize: [20, 20], color: "red" });
 
 export default class MarkerManager {
 
@@ -34,14 +34,14 @@ export default class MarkerManager {
   }
 
   eventIsLast(event: TimeSeriesEntry): boolean {
-    return event.arrival_time === null
+    return event.arrival_time === null;
   }
 
   pingMarker(marker: L.Marker) {
-    const markerElement: HTMLElement = (marker as any)._icon // _icon is private but I can't find a public alternative
-    L.DomUtil.removeClass(markerElement, 'marker-pinged');
+    const markerElement: HTMLElement = (marker as any)._icon; // _icon is private but I can"t find a public alternative
+    L.DomUtil.removeClass(markerElement, "marker-pinged");
     setTimeout(() => {
-      L.DomUtil.addClass(markerElement, 'marker-pinged');
+      L.DomUtil.addClass(markerElement, "marker-pinged");
     }, 0);
   }
 
@@ -59,7 +59,7 @@ export default class MarkerManager {
   updateMarker(event: TimeSeriesEntry) {
     const origin = this.destinationFromEvent(event);
     const destination = this.arrivalFromEvent(event);
-    const marker = this.markers[event.id]
+    const marker = this.markers[event.id];
     if (destination) {
       this.animators[event.id] = new MarkerAnimator(marker, origin, destination, event.departure_time, event.arrival_time);
     }
@@ -68,10 +68,10 @@ export default class MarkerManager {
   }
 
   destroyMarker(event: TimeSeriesEntry) {
-    const id = event.id
+    const id = event.id;
     const marker = this.markers[id];
-    const markerElement: HTMLElement = (marker as any)._icon // _icon is private but I can't find a public alternative
-    L.DomUtil.addClass(markerElement, 'marker-destroyed');
+    const markerElement: HTMLElement = (marker as any)._icon; // _icon is private but I can"t find a public alternative
+    L.DomUtil.addClass(markerElement, "marker-destroyed");
     setTimeout(() => {
       delete this.markers[id];
       delete this.animators[event.id];

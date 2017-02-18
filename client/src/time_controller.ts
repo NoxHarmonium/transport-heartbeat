@@ -1,5 +1,5 @@
 
-import { TickCallbackFn } from './type_defs'
+import { TickCallbackFn } from "./type_defs";
 
 export default class TimeController {
 
@@ -11,30 +11,30 @@ export default class TimeController {
   private animationFrameId: number = 0;
 
   constructor() {
-    this.tickCallbacks = []
-    this.reset()
+    this.tickCallbacks = [];
+    this.reset();
   }
 
   reset() {
-    this.started = false
+    this.started = false;
     this.currentTime = new Date(2017, 0, 20, 4, 59);
     this.rate = 60 * 5; // Seconds per second
   }
 
   start() {
-    this.started = true
+    this.started = true;
     window.requestAnimationFrame(this.tick.bind(this));
   }
 
   stop() {
-    this.started = false
-    window.cancelAnimationFrame(this.animationFrameId)
+    this.started = false;
+    window.cancelAnimationFrame(this.animationFrameId);
   }
 
   tick(time: number) {
     if (this.lastTickTime) {
-      const delta = (time - this.lastTickTime) * this.rate
-      this.currentTime = new Date(this.currentTime.getTime() + delta)
+      const delta = (time - this.lastTickTime) * this.rate;
+      this.currentTime = new Date(this.currentTime.getTime() + delta);
     }
     if (this.tickCallbacks.length > 0) {
       this.tickCallbacks.forEach((callback: TickCallbackFn) => callback(this.currentTime));
@@ -46,7 +46,7 @@ export default class TimeController {
   }
 
   registerCallback(callback: TickCallbackFn) {
-    this.tickCallbacks.push(callback)
+    this.tickCallbacks.push(callback);
   }
 
 }

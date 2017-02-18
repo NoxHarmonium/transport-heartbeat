@@ -1,11 +1,11 @@
 
-import MarkerManager from './marker_manager.js'
-import setupBaseLayer from './setup_base_layer'
-import setupRoutes from './setup_routes'
-import TimeController from './time_controller'
-import TimeSeriesDataManager from './time_series_data_manager'
-import TimeSeriesEntry from './time_series_entry'
-import TimeSeriesEventEmitter from './time_series_event_emitter'
+import MarkerManager from "./marker_manager.js";
+import setupBaseLayer from "./setup_base_layer";
+import setupRoutes from "./setup_routes";
+import TimeController from "./time_controller";
+import TimeSeriesDataManager from "./time_series_data_manager";
+import TimeSeriesEntry from "./time_series_entry";
+import TimeSeriesEventEmitter from "./time_series_event_emitter";
 
 const dataManager = new TimeSeriesDataManager();
 
@@ -22,9 +22,9 @@ setupRoutes(map)
       markerManager.handleEvent(event);
     });
     timeController.registerCallback((time: Date) => {
-      let timeIndicatorElement = document.getElementById('time_indicator')
+      let timeIndicatorElement = document.getElementById("time_indicator");
       if (timeIndicatorElement) {
-        timeIndicatorElement.innerHTML = time.toString()
+        timeIndicatorElement.innerHTML = time.toString();
       }
     });
   })

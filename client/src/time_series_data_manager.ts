@@ -1,14 +1,14 @@
 
-import TimeSeriesEntry from './time_series_entry'
+import TimeSeriesEntry from "./time_series_entry";
 
 export default class TimeSeriesDataManager {
-  
-  private utcOffsetMillis: number = 11 * 60 * 60 * 1000
+
+  private utcOffsetMillis: number = 11 * 60 * 60 * 1000;
 
   padToTwoDigits(num: number) {
     const str = num.toString();
     if (str.length < 2) {
-      return '0' + str;
+      return "0" + str;
     }
     return str;
   }
@@ -19,10 +19,10 @@ export default class TimeSeriesDataManager {
     // It is probably not ideal as it is brittle if the date format changes but it will do for now
     // Supported format: 2017-01-21 05:46:00 in AEDT
     let dateComponent, timeComponent, hours, minutes, seconds, day, month, year;
-    [dateComponent, timeComponent] = dateString.split(' ');
-    [year, month, day] = dateComponent.split('-').map((n) => parseInt(n));
-    [hours, minutes, seconds] = timeComponent.split(':').map((n) => parseInt(n));
-    let utcTimeMillis = Date.UTC(year, month - 1, day, hours, minutes, seconds)
+    [dateComponent, timeComponent] = dateString.split(" ");
+    [year, month, day] = dateComponent.split("-").map((n) => parseInt(n));
+    [hours, minutes, seconds] = timeComponent.split(":").map((n) => parseInt(n));
+    const utcTimeMillis = Date.UTC(year, month - 1, day, hours, minutes, seconds);
     return new Date(utcTimeMillis - this.utcOffsetMillis);
   }
 

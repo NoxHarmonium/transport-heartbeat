@@ -13,6 +13,10 @@ export default class MarkerAnimator {
         this.destination = destination;
         this.startTime = startTime;
         this.endTime = endTime;
+
+        if (endTime == null) {
+            throw Error('Cannot animate to a null end time');
+        }
     }
 
     tick(time: Date) {

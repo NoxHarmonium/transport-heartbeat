@@ -5,28 +5,32 @@ System.register("marker_animator", [], function (exports_1, context_1) {
     return {
         setters: [],
         execute: function () {
-            MarkerAnimator = class MarkerAnimator {
-                constructor(targetMarker, origin, destination, startTime, endTime) {
+            MarkerAnimator = (function () {
+                function MarkerAnimator(targetMarker, origin, destination, startTime, endTime) {
                     this.targetMarker = targetMarker;
                     this.origin = origin;
                     this.destination = destination;
                     this.startTime = startTime;
                     this.endTime = endTime;
+                    if (endTime == null) {
+                        throw Error('Cannot animate to a null end time');
+                    }
                 }
-                tick(time) {
-                    const progress = this.clamp((time.valueOf() - this.startTime.valueOf()) /
+                MarkerAnimator.prototype.tick = function (time) {
+                    var progress = this.clamp((time.valueOf() - this.startTime.valueOf()) /
                         (this.endTime.valueOf() - this.startTime.valueOf()), 0, 1);
-                    const latDelta = (this.destination[0] - this.origin[0]) * progress;
-                    const lonDelta = (this.destination[1] - this.origin[1]) * progress;
+                    var latDelta = (this.destination[0] - this.origin[0]) * progress;
+                    var lonDelta = (this.destination[1] - this.origin[1]) * progress;
                     if (isNaN(latDelta) || isNaN(lonDelta)) {
                         return;
                     }
                     this.targetMarker.setLatLng([this.origin[0] + latDelta, this.origin[1] + lonDelta]);
-                }
-                clamp(value, min, max) {
+                };
+                MarkerAnimator.prototype.clamp = function (value, min, max) {
                     return Math.min(Math.max(value, min), max);
-                }
-            };
+                };
+                return MarkerAnimator;
+            }());
             exports_1("default", MarkerAnimator);
         }
     };
@@ -56,43 +60,45 @@ System.register("time_controller", [], function (exports_4, context_4) {
     return {
         setters: [],
         execute: function () {
-            TimeController = class TimeController {
-                constructor() {
+            TimeController = (function () {
+                function TimeController() {
                     this.started = false;
                     this.animationFrameId = 0;
                     this.tickCallbacks = [];
                     this.reset();
                 }
-                reset() {
+                TimeController.prototype.reset = function () {
                     this.started = false;
                     this.currentTime = new Date(2017, 0, 20, 4, 59);
                     this.rate = 60 * 5; // Seconds per second
-                }
-                start() {
+                };
+                TimeController.prototype.start = function () {
                     this.started = true;
                     window.requestAnimationFrame(this.tick.bind(this));
-                }
-                stop() {
+                };
+                TimeController.prototype.stop = function () {
                     this.started = false;
                     window.cancelAnimationFrame(this.animationFrameId);
-                }
-                tick(time) {
+                };
+                TimeController.prototype.tick = function (time) {
+                    var _this = this;
                     if (this.lastTickTime) {
-                        const delta = (time - this.lastTickTime) * this.rate;
+                        var delta = (time - this.lastTickTime) * this.rate;
                         this.currentTime = new Date(this.currentTime.getTime() + delta);
                     }
                     if (this.tickCallbacks.length > 0) {
-                        this.tickCallbacks.forEach((callback) => callback(this.currentTime));
+                        this.tickCallbacks.forEach(function (callback) { return callback(_this.currentTime); });
                     }
                     if (this.started) {
                         this.animationFrameId = window.requestAnimationFrame(this.tick.bind(this));
                     }
                     this.lastTickTime = time;
-                }
-                registerCallback(callback) {
+                };
+                TimeController.prototype.registerCallback = function (callback) {
                     this.tickCallbacks.push(callback);
-                }
-            };
+                };
+                return TimeController;
+            }());
             exports_4("default", TimeController);
         }
     };
@@ -108,83 +114,86 @@ System.register("marker_manager", ["marker_animator"], function (exports_5, cont
             }
         ],
         execute: function () {
+            // FutureWork: Create type definitions for leaflet-icon-pulse
             pulsingIcon = L.icon.pulse({ iconSize: [20, 20], color: 'red' });
-            MarkerManager = class MarkerManager {
-                constructor(map, timeController) {
+            MarkerManager = (function () {
+                function MarkerManager(map, timeController) {
+                    var _this = this;
                     this.map = map;
                     this.markers = {};
                     this.animators = {};
                     this.markerCooldown = 1000;
-                    timeController.registerCallback((time) => this.tick(time));
+                    timeController.registerCallback(function (time) { return _this.tick(time); });
                 }
-                destinationFromEvent(event) {
+                MarkerManager.prototype.destinationFromEvent = function (event) {
                     return [parseFloat(event.departure_lat), parseFloat(event.departure_lon)];
-                }
-                arrivalFromEvent(event) {
+                };
+                MarkerManager.prototype.arrivalFromEvent = function (event) {
                     return [parseFloat(event.arrival_lat), parseFloat(event.arrival_lon)];
-                }
-                eventIsNew(event) {
+                };
+                MarkerManager.prototype.eventIsNew = function (event) {
                     return !(event.id in this.markers);
-                }
-                eventIsLast(event) {
+                };
+                MarkerManager.prototype.eventIsLast = function (event) {
                     return event.arrival_time === null;
-                }
-                pingMarker(marker) {
-                    const markerElement = marker._icon; // _icon is private but I can't find a public alternative
+                };
+                MarkerManager.prototype.pingMarker = function (marker) {
+                    var markerElement = marker._icon; // _icon is private but I can't find a public alternative
                     L.DomUtil.removeClass(markerElement, 'marker-pinged');
-                    setTimeout(() => {
+                    setTimeout(function () {
                         L.DomUtil.addClass(markerElement, 'marker-pinged');
                     }, 0);
-                }
-                createMarker(event) {
-                    const origin = this.destinationFromEvent(event);
-                    const destination = this.arrivalFromEvent(event);
-                    const marker = L.marker(origin, { icon: pulsingIcon }).addTo(this.map);
+                };
+                MarkerManager.prototype.createMarker = function (event) {
+                    var origin = this.destinationFromEvent(event);
+                    var destination = this.arrivalFromEvent(event);
+                    var marker = L.marker(origin, { icon: pulsingIcon }).addTo(this.map);
                     this.markers[event.id] = marker;
                     if (destination) {
                         this.animators[event.id] = new marker_animator_1.default(marker, origin, destination, event.departure_time, event.arrival_time);
                     }
                     this.pingMarker(marker);
-                }
-                updateMarker(event) {
-                    const origin = this.destinationFromEvent(event);
-                    const destination = this.arrivalFromEvent(event);
-                    const marker = this.markers[event.id];
+                };
+                MarkerManager.prototype.updateMarker = function (event) {
+                    var origin = this.destinationFromEvent(event);
+                    var destination = this.arrivalFromEvent(event);
+                    var marker = this.markers[event.id];
                     if (destination) {
                         this.animators[event.id] = new marker_animator_1.default(marker, origin, destination, event.departure_time, event.arrival_time);
                     }
                     marker.setLatLng(origin);
                     this.pingMarker(marker);
-                }
-                destroyMarker(event) {
-                    this.updateMarker(event);
-                    const id = event.id;
-                    const marker = this.markers[id];
-                    const markerElement = marker._icon; // _icon is private but I can't find a public alternative
+                };
+                MarkerManager.prototype.destroyMarker = function (event) {
+                    var _this = this;
+                    var id = event.id;
+                    var marker = this.markers[id];
+                    var markerElement = marker._icon; // _icon is private but I can't find a public alternative
                     L.DomUtil.addClass(markerElement, 'marker-destroyed');
-                    setTimeout(() => {
-                        delete this.markers[id];
-                        delete this.animators[event.id];
-                        this.map.removeLayer(marker);
+                    setTimeout(function () {
+                        delete _this.markers[id];
+                        delete _this.animators[event.id];
+                        _this.map.removeLayer(marker);
                     }, this.markerCooldown);
-                }
-                handleEvent(event) {
-                    if (this.eventIsNew(event)) {
-                        this.createMarker(event);
-                    }
-                    else if (this.eventIsLast(event)) {
+                };
+                MarkerManager.prototype.handleEvent = function (event) {
+                    if (this.eventIsLast(event)) {
                         this.destroyMarker(event);
+                    }
+                    else if (this.eventIsNew(event)) {
+                        this.createMarker(event);
                     }
                     else {
                         this.updateMarker(event);
                     }
-                }
-                tick(time) {
-                    for (const tripId in this.animators) {
+                };
+                MarkerManager.prototype.tick = function (time) {
+                    for (var tripId in this.animators) {
                         this.animators[tripId].tick(time);
                     }
-                }
-            };
+                };
+                return MarkerManager;
+            }());
             exports_5("default", MarkerManager);
         }
     };
@@ -215,31 +224,31 @@ System.register("setup_routes", [], function (exports_7, context_7) {
     var __moduleName = context_7 && context_7.id;
     function setupRoutes(map) {
         return Promise.all([
-            fetch('json/routes/bus-lines-simplified.json').then((res) => res.json()),
-            fetch('json/routes/tram-lines-simplified.json').then((res) => res.json()),
-            fetch('json/routes/train-lines-simplified.json').then((res) => res.json())
+            fetch('json/routes/bus-lines-simplified.json').then(function (res) { return res.json(); }),
+            fetch('json/routes/tram-lines-simplified.json').then(function (res) { return res.json(); }),
+            fetch('json/routes/train-lines-simplified.json').then(function (res) { return res.json(); })
         ])
-            .then((results) => {
+            .then(function (results) {
             L.geoJSON(results[0], {
-                style: (_) => ({
+                style: function (_) { return ({
                     "color": "#FFB74D",
                     "weight": 2,
                     "opacity": 0.25,
-                })
+                }); }
             }).addTo(map);
             L.geoJSON(results[1], {
-                style: (_) => ({
+                style: function (_) { return ({
                     "color": "#7CB342",
                     "weight": 3,
                     "opacity": 0.75,
-                })
+                }); }
             }).addTo(map);
             L.geoJSON(results[2], {
-                style: (_) => ({
+                style: function (_) { return ({
                     "color": "#01579B",
                     "weight": 4,
                     "opacity": 1,
-                })
+                }); }
             }).addTo(map);
             map.createPane('labels');
             map.getPane('labels').style.zIndex = "650";
@@ -264,38 +273,57 @@ System.register("time_series_data_manager", [], function (exports_8, context_8) 
     return {
         setters: [],
         execute: function () {
-            TimeSeriesDataManager = class TimeSeriesDataManager {
-                padToTwoDigits(num) {
-                    const str = num.toString();
+            TimeSeriesDataManager = (function () {
+                function TimeSeriesDataManager() {
+                    this.utcOffsetMillis = 11 * 60 * 60 * 1000;
+                }
+                TimeSeriesDataManager.prototype.padToTwoDigits = function (num) {
+                    var str = num.toString();
                     if (str.length < 2) {
                         return '0' + str;
                     }
                     return str;
-                }
-                formatDateForFilename(date) {
-                    const year = date.getFullYear();
-                    const month = this.padToTwoDigits(date.getMonth() + 1);
-                    const day = this.padToTwoDigits(date.getDate());
-                    return `${year}${month}${day}`;
-                }
-                getTimeSeriesData(date) {
-                    const formattedDate = this.formatDateForFilename(date);
-                    return fetch(`json/timeseries/${formattedDate}.json`)
-                        .then((res) => res.json())
-                        .then(this.prepareData);
-                }
-                prepareData(rawData) {
-                    return rawData.time_series.map((timeSeriesEntry) => {
+                };
+                TimeSeriesDataManager.prototype.parseDate = function (dateString) {
+                    // Safari seems to treat dates differently to other browsers
+                    // Therefore this function breaks down the date format manually
+                    // It is probably not ideal as it is brittle if the date format changes but it will do for now
+                    // Supported format: 2017-01-21 05:46:00 in AEDT
+                    var dateComponent, timeComponent, hours, minutes, seconds, day, month, year;
+                    _a = dateString.split(' '), dateComponent = _a[0], timeComponent = _a[1];
+                    _b = dateComponent.split('-').map(function (n) { return parseInt(n); }), year = _b[0], month = _b[1], day = _b[2];
+                    _c = timeComponent.split(':').map(function (n) { return parseInt(n); }), hours = _c[0], minutes = _c[1], seconds = _c[2];
+                    var utcTimeMillis = Date.UTC(year, month - 1, day, hours, minutes, seconds);
+                    return new Date(utcTimeMillis - this.utcOffsetMillis);
+                    var _a, _b, _c;
+                };
+                TimeSeriesDataManager.prototype.formatDateForFilename = function (date) {
+                    var year = date.getFullYear();
+                    var month = this.padToTwoDigits(date.getMonth() + 1);
+                    var day = this.padToTwoDigits(date.getDate());
+                    return "" + year + month + day;
+                };
+                TimeSeriesDataManager.prototype.getTimeSeriesData = function (date) {
+                    var _this = this;
+                    var formattedDate = this.formatDateForFilename(date);
+                    return fetch("json/timeseries/" + formattedDate + ".json")
+                        .then(function (res) { return res.json(); })
+                        .then(function (data) { return _this.prepareData(data); });
+                };
+                TimeSeriesDataManager.prototype.prepareData = function (rawData) {
+                    var _this = this;
+                    return rawData.time_series.map(function (timeSeriesEntry) {
                         if (timeSeriesEntry.departure_time) {
-                            timeSeriesEntry.departure_time = new Date(`${timeSeriesEntry.departure_time} GMT+1100`);
+                            timeSeriesEntry.departure_time = _this.parseDate(timeSeriesEntry.departure_time);
                         }
                         if (timeSeriesEntry.arrival_time) {
-                            timeSeriesEntry.arrival_time = new Date(`${timeSeriesEntry.arrival_time} GMT+1100`);
+                            timeSeriesEntry.arrival_time = _this.parseDate(timeSeriesEntry.arrival_time);
                         }
                         return timeSeriesEntry;
                     });
-                }
-            };
+                };
+                return TimeSeriesDataManager;
+            }());
             exports_8("default", TimeSeriesDataManager);
         }
     };
@@ -307,22 +335,23 @@ System.register("time_series_event_emitter", [], function (exports_9, context_9)
     return {
         setters: [],
         execute: function () {
-            TimeSeriesEventEmitter = class TimeSeriesEventEmitter {
-                constructor(timeController, timeSeriesData, eventCallback) {
+            TimeSeriesEventEmitter = (function () {
+                function TimeSeriesEventEmitter(timeController, timeSeriesData, eventCallback) {
                     this.timeController = timeController;
                     this.timeSeriesData = timeSeriesData;
                     this.eventCallback = eventCallback;
                     timeController.registerCallback(this.tickCallback.bind(this));
                 }
-                tickCallback(time) {
+                TimeSeriesEventEmitter.prototype.tickCallback = function (time) {
                     if (!this.eventCallback) {
                         return;
                     }
                     while (time > this.timeSeriesData[0].departure_time) {
                         this.eventCallback(time, this.timeSeriesData.shift());
                     }
-                }
-            };
+                };
+                return TimeSeriesEventEmitter;
+            }());
             exports_9("default", TimeSeriesEventEmitter);
         }
     };
@@ -358,20 +387,20 @@ System.register("main", ["marker_manager", "setup_base_layer", "setup_routes", "
             timeController = new time_controller_1.default();
             markerManager = new marker_manager_js_1.default(map, timeController);
             setup_routes_1.default(map)
-                .then(() => dataManager.getTimeSeriesData(new Date(2017, 0, 20)))
-                .then((data) => {
+                .then(function () { return dataManager.getTimeSeriesData(new Date(2017, 0, 20)); })
+                .then(function (data) {
                 timeController.start();
-                eventEmitter = new time_series_event_emitter_1.default(timeController, data, (_, event) => {
+                eventEmitter = new time_series_event_emitter_1.default(timeController, data, function (_, event) {
                     markerManager.handleEvent(event);
                 });
-                timeController.registerCallback((time) => {
-                    let timeIndicatorElement = document.getElementById('time_indicator');
+                timeController.registerCallback(function (time) {
+                    var timeIndicatorElement = document.getElementById('time_indicator');
                     if (timeIndicatorElement) {
                         timeIndicatorElement.innerHTML = time.toString();
                     }
                 });
             })
-                .catch((err) => {
+                .catch(function (err) {
                 console.error(err);
             });
         }

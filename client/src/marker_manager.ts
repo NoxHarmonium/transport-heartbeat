@@ -68,7 +68,6 @@ export default class MarkerManager {
   }
 
   destroyMarker(event: TimeSeriesEntry) {
-    this.updateMarker(event)
     const id = event.id
     const marker = this.markers[id];
     const markerElement: HTMLElement = (marker as any)._icon // _icon is private but I can't find a public alternative
@@ -81,10 +80,10 @@ export default class MarkerManager {
   }
 
   handleEvent(event: TimeSeriesEntry) {
-    if (this.eventIsNew(event)) {
-      this.createMarker(event);
-    } else if (this.eventIsLast(event)) {
+    if (this.eventIsLast(event)) {
       this.destroyMarker(event);
+    } else if (this.eventIsNew(event)) {
+      this.createMarker(event);
     } else {
       this.updateMarker(event);
     }
